@@ -104,6 +104,8 @@ _C.OPTIM.TEMP = 1.0
 
 _C.OPTIM.ADAPT = "ent"
 
+_C.OPTIM.TUNE_MODULES = "all"
+
 # ------------------------------- Transformer options ------------------------- #
 _C.TRANSFORMER = CfgNode()
 _C.TRANSFORMER.INPUT_DIM = 16
