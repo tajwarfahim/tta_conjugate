@@ -36,6 +36,7 @@ CORRUPTION:
     # - saturate
     # - spatter
 OPTIM:
+  TUNE_MODULES: first
   METHOD: SGD
   ADAPT: conjugate
   STEPS: 1

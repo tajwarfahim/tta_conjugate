@@ -120,9 +120,9 @@ def setup_optimizer(params, lr_test=None):
     else:
         raise NotImplementedError
 
-def meta_test_adaptive(model, x_test, y_test, batch_size,  n_inner_iter=1, adaptive=True, use_test_bn=True, num_classes=10):
+def meta_test_adaptive(model, x_test, y_test, batch_size,  tune_module_names=[""], n_inner_iter=1, adaptive=True, use_test_bn=True, num_classes=10):
     if use_test_bn:
-        model = tent.configure_model(model)
+        model = tent.configure_model(model, tune_module_names=tune_module_names)
     else:
         model = tent.configure_model_eval(model)
 
@@ -194,6 +194,15 @@ def meta_test_adaptive(model, x_test, y_test, batch_size,  n_inner_iter=1, adapt
 
     return acc.item() / x_test.shape[0]
 
+if cfg.OPTIM.TUNE_MODULES == "all":
+    tune_module_prefixes = [""]
+elif cfg.OPTIM.TUNE_MODULES == "first":
+    tune_module_prefixes = ["module.conv1"]
+else:
+    raise ValueError()
+
+print("Tune module prefixes:", tune_module_prefixes)
+
 for i, severity in enumerate(cfg.CORRUPTION.SEVERITY):
     err_list = []
     for j, corruption_type in enumerate(cfg.CORRUPTION.TYPE):
@@ -213,6 +222,10 @@ for i, severity in enumerate(cfg.CORRUPTION.SEVERITY):
         print("Meta test begin!")
         net_test = copy.deepcopy(net)
 
-        acc = meta_test_adaptive(net_test, x_test, y_test, cfg.TEST.BATCH_SIZE, 1, adaptive=True, use_test_bn=True, num_classes=num_classes)
+        acc = meta_test_adaptive(net_test, x_test, y_test, cfg.TEST.BATCH_SIZE, tune_module_prefixes, 1, adaptive=True, use_test_bn=True, num_classes=num_classes)
         err = 1. - acc
         logger.info(f"error % [{corruption_type}{severity}]: {err:.2%}")
+        err_list.append(err)
+
+mean_err = np.mean(err_list)
+logger.info(f"Mean error %: {mean_err:.2%}")

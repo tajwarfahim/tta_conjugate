@@ -307,21 +307,32 @@ def load_model_and_optimizer(model, optimizer, model_state, optimizer_state):
     model.load_state_dict(model_state, strict=True)
     optimizer.load_state_dict(optimizer_state)
 
-def configure_model(model):
+def name_prefix_exists(prefix_list, name):
+    for prefix in prefix_list:
+        if name.startswith(prefix):
+            return True
+
+    return False
+
+def configure_model(model, tune_module_names=[""]):
     """Configure model for use with tent."""
     # train mode, because tent optimizes the model to minimize entropy
     model.train()
     # disable grad, to (re-)enable only what tent updates
     model.requires_grad_(False)
     # configure norm for tent updates: enable grad + force batch statisics
-    for m in model.modules():
-        if isinstance(m, nn.BatchNorm2d):
+    for name, m in model.named_modules():
+        if name_prefix_exists(prefix_list=tune_module_names, name=name):
             m.requires_grad_(True)
-            # force use of batch stats in train and eval modes
 
-            m.track_running_stats = False
-            m.running_mean = None
-            m.running_var = None
+        #if isinstance(m, nn.BatchNorm2d):
+        #    m.requires_grad_(True)
+        #     # force use of batch stats in train and eval modes
+        #
+        #    m.track_running_stats = False
+        #    m.running_mean = None
+        #    m.running_var = None
+    
     return model
 
 def configure_model_eval(model):
