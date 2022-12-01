@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
-
+import random
 import logging 
 
 import os 
@@ -18,8 +18,6 @@ import tent
 import copy
 
 import time
-
-torch.manual_seed(0)
 
 from tent import copy_model_and_optimizer, load_model_and_optimizer, softmax_entropy
 
@@ -61,6 +59,14 @@ elif cfg.CORRUPTION.DATASET == "cifar100":
 
     net.to(device)
     cudnn.benchmark = True
+
+def set_seed_everywhere(seed):
+    logger.info(f"Setting random seed to {seed}")
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
 
 def test_clean(model, x_test, y_test, batch_size):
     acc = 0.
@@ -194,6 +200,8 @@ def meta_test_adaptive(model, x_test, y_test, batch_size,  tune_module_names=[""
 
     return acc.item() / x_test.shape[0]
 
+set_seed_everywhere(seed=cfg.RNG_SEED)
+
 if cfg.OPTIM.TUNE_MODULES == "all":
     tune_module_prefixes = [""]
 elif cfg.OPTIM.TUNE_MODULES == "first":
@@ -219,12 +227,12 @@ for i, severity in enumerate(cfg.CORRUPTION.SEVERITY):
         x_test, y_test = x_test.cuda(), y_test.cuda()
         y_test = y_test.type(torch.cuda.LongTensor)
 
-        print("Meta test begin!")
+        #print("Meta test begin!")
         net_test = copy.deepcopy(net)
 
         acc = meta_test_adaptive(net_test, x_test, y_test, cfg.TEST.BATCH_SIZE, tune_module_prefixes, 1, adaptive=True, use_test_bn=True, num_classes=num_classes)
         err = 1. - acc
-        logger.info(f"error % [{corruption_type}{severity}]: {err:.2%}")
+        #logger.info(f"error % [{corruption_type}{severity}]: {err:.2%}")
         err_list.append(err)
 
 mean_err = np.mean(err_list)
